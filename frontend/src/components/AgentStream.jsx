@@ -1,35 +1,67 @@
-const STYLES = {
-  think: { background: '#eff6ff', borderLeft: '4px solid #2563eb', label: '🤔 Think', color: '#1e40af' },
-  act:   { background: '#fff7ed', borderLeft: '4px solid #ea580c', label: '🔧 Act',   color: '#9a3412' },
-  observe: { background: '#f9fafb', borderLeft: '4px solid #6b7280', label: '👁 Observe', color: '#374151' },
-  done:  { background: '#f0fdf4', borderLeft: '4px solid #16a34a', label: '✅ Done',  color: '#15803d' },
-  error: { background: '#fef2f2', borderLeft: '4px solid #dc2626', label: '❌ Error', color: '#991b1b' },
+const TAG_STYLES = {
+  think:   { bg: '#e8f0ff', color: '#2563eb', label: 'Think' },
+  act:     { bg: '#fff3e0', color: '#d97706', label: 'Act' },
+  observe: { bg: '#f1f5f9', color: '#64748b', label: 'Observe' },
+  done:    { bg: '#e8f5e9', color: '#16a34a', label: 'Done' },
+  error:   { bg: '#fef2f2', color: '#dc2626', label: 'Error' },
 }
 
-function EventCard({ event }) {
-  const style = STYLES[event.type] || STYLES.observe
-  const body = event.content ?? event.result ?? event.message
+function EventRow({ event }) {
+  const tag = TAG_STYLES[event.type] || TAG_STYLES.observe
+  const text = event.content ?? event.result ?? event.message
     ?? (event.tool ? `${event.tool}(${JSON.stringify(event.args)})` : '')
 
   return (
-    <div style={{ padding: '12px 16px', marginBottom: 8, borderRadius: 4,
-                  background: style.background, borderLeft: style.borderLeft }}>
-      <div style={{ fontWeight: 600, marginBottom: 4, color: style.color, fontSize: 13 }}>
-        {style.label}
-      </div>
-      <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                    fontSize: 13, color: '#374151' }}>
-        {body}
-      </pre>
+    <div style={{
+      display: 'flex',
+      gap: 14,
+      alignItems: 'flex-start',
+      padding: '12px 0',
+      borderBottom: '1px solid #e8e2d9',
+    }}>
+      <span style={{
+        display: 'inline-block',
+        fontSize: 9,
+        letterSpacing: '1.5px',
+        textTransform: 'uppercase',
+        padding: '3px 7px',
+        background: tag.bg,
+        color: tag.color,
+        fontFamily: '"DM Sans", sans-serif',
+        fontWeight: 500,
+        flexShrink: 0,
+        marginTop: 2,
+        whiteSpace: 'nowrap',
+      }}>
+        {tag.label}
+      </span>
+      <span style={{
+        fontSize: 13,
+        color: '#444',
+        lineHeight: 1.6,
+        fontFamily: '"DM Sans", sans-serif',
+        wordBreak: 'break-word',
+      }}>
+        {text}
+      </span>
     </div>
   )
 }
 
 export default function AgentStream({ events }) {
   return (
-    <div style={{ marginTop: 24 }}>
-      <h2 style={{ marginBottom: 12, fontSize: 16 }}>Agent Trace</h2>
-      {events.map((event, i) => <EventCard key={i} event={event} />)}
+    <div style={{ marginTop: 48 }}>
+      <div style={{
+        fontSize: 10,
+        letterSpacing: '2.5px',
+        textTransform: 'uppercase',
+        color: '#999',
+        marginBottom: 16,
+        fontFamily: '"DM Sans", sans-serif',
+      }}>
+        Agent Trace
+      </div>
+      {events.map((event, i) => <EventRow key={i} event={event} />)}
     </div>
   )
 }
