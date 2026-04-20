@@ -41,12 +41,12 @@ def dispatch_tool(name: str, args: dict) -> dict:
 
 
 async def run_agent(github_url: str, user_request: str) -> AsyncGenerator[str, None]:
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     messages = [{"role": "user", "content": user_request}]
     system = SYSTEM_PROMPT.format(github_url=github_url)
 
     for _ in range(MAX_ITERATIONS):
-        response = client.messages.create(
+        response = await client.messages.create(
             model="claude-opus-4-7",
             max_tokens=4096,
             system=system,
@@ -54,7 +54,6 @@ async def run_agent(github_url: str, user_request: str) -> AsyncGenerator[str, N
             messages=messages,
         )
 
-        # Stream think: extract text blocks
         think_text = " ".join(
             block.text for block in response.content
             if hasattr(block, "text") and block.text
@@ -79,7 +78,9 @@ async def run_agent(github_url: str, user_request: str) -> AsyncGenerator[str, N
 
                 result = dispatch_tool(tool_name, tool_args)
 
-                yield f"data: {json.dumps({'type': 'observe', 'content': json.dumps(result)[:2000]})}\n\n"
+                # Send result as object (not double-encoded string) for consistent frontend parsing
+                observe_payload = json.dumps(result)[:2000]
+                yield f"data: {json.dumps({'type': 'observe', 'content': observe_payload})}\n\n"
 
                 tool_results.append({
                     "type": "tool_result",
