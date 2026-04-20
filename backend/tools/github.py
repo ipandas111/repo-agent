@@ -1,6 +1,6 @@
+import base64
 import os
 import httpx
-from typing import Optional
 
 GITHUB_API = "https://api.github.com"
 
@@ -17,7 +17,7 @@ def parse_github_url(url: str) -> tuple[str, str]:
     if "github.com" not in url:
         raise ValueError(f"Not a GitHub URL: {url}")
     parts = url.split("github.com/")[-1].split("/")
-    if len(parts) < 2:
+    if len(parts) < 2 or not parts[0] or not parts[1]:
         raise ValueError(f"Cannot parse owner/repo from: {url}")
     return parts[0], parts[1]
 
@@ -47,7 +47,6 @@ def github_list_tree(owner: str, repo: str, branch: str = "HEAD") -> dict:
     return {"file_count": len(paths), "files": paths[:200]}  # cap at 200
 
 def github_read_file(owner: str, repo: str, path: str) -> dict:
-    import base64
     r = httpx.get(
         f"{GITHUB_API}/repos/{owner}/{repo}/contents/{path}",
         headers=_headers()
