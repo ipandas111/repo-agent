@@ -13,8 +13,11 @@ def _headers() -> dict:
 
 def parse_github_url(url: str) -> tuple[str, str]:
     """Extract (owner, repo) from a GitHub URL."""
+    from urllib.parse import urlparse
     url = url.rstrip("/")
-    if "github.com" not in url:
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ""
+    if hostname != "github.com" and not hostname.endswith(".github.com"):
         raise ValueError(f"Not a GitHub URL: {url}")
     parts = url.split("github.com/")[-1].split("/")
     if len(parts) < 2 or not parts[0] or not parts[1]:
