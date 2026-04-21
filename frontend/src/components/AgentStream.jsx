@@ -6,9 +6,9 @@ const TAG_STYLES = {
   error:   { bg: '#fef2f2', color: '#dc2626', label: 'Error' },
 }
 
-function EventRow({ event }) {
+function TraceRow({ event }) {
   const tag = TAG_STYLES[event.type] || TAG_STYLES.observe
-  const text = event.content ?? event.result ?? event.message
+  const text = event.content ?? event.message
     ?? (event.tool ? `${event.tool}(${JSON.stringify(event.args)})` : '')
 
   return (
@@ -16,8 +16,8 @@ function EventRow({ event }) {
       display: 'flex',
       gap: 14,
       alignItems: 'flex-start',
-      padding: '12px 0',
-      borderBottom: '1px solid #e8e2d9',
+      padding: '10px 0',
+      borderBottom: '1px solid #ede8e0',
     }}>
       <span style={{
         display: 'inline-block',
@@ -28,7 +28,7 @@ function EventRow({ event }) {
         background: tag.bg,
         color: tag.color,
         fontFamily: '"DM Sans", sans-serif',
-        fontWeight: 500,
+        fontWeight: 600,
         flexShrink: 0,
         marginTop: 2,
         whiteSpace: 'nowrap',
@@ -36,11 +36,12 @@ function EventRow({ event }) {
         {tag.label}
       </span>
       <span style={{
-        fontSize: 13,
-        color: '#444',
+        fontSize: 12,
+        color: '#666',
         lineHeight: 1.6,
-        fontFamily: '"DM Sans", sans-serif',
+        fontFamily: 'monospace',
         wordBreak: 'break-word',
+        whiteSpace: 'pre-wrap',
       }}>
         {text}
       </span>
@@ -48,20 +49,113 @@ function EventRow({ event }) {
   )
 }
 
-export default function AgentStream({ events }) {
+function FinalReport({ result }) {
+  const lines = result.split('\n')
   return (
-    <div style={{ marginTop: 48 }}>
+    <div style={{ marginBottom: 48 }}>
       <div style={{
         fontSize: 10,
         letterSpacing: '2.5px',
         textTransform: 'uppercase',
         color: '#999',
-        marginBottom: 16,
+        marginBottom: 20,
         fontFamily: '"DM Sans", sans-serif',
       }}>
-        Agent Trace
+        Repository Report
       </div>
-      {events.map((event, i) => <EventRow key={i} event={event} />)}
+
+      {lines.map((line, i) => {
+        if (!line.trim()) return <div key={i} style={{ height: 8 }} />
+
+        if (line.startsWith('**') && line.endsWith('**')) {
+          return (
+            <h2 key={i} style={{
+              fontFamily: '"Playfair Display", serif',
+              fontSize: 24,
+              fontWeight: 700,
+              color: '#1a1a1a',
+              marginBottom: 16,
+              letterSpacing: '-0.3px',
+            }}>
+              {line.slice(2, -2)}
+            </h2>
+          )
+        }
+
+        if (line.startsWith('•')) {
+          return (
+            <div key={i} style={{
+              display: 'flex',
+              gap: 10,
+              fontSize: 13,
+              color: '#444',
+              lineHeight: 1.8,
+              marginBottom: 4,
+              fontFamily: '"DM Sans", sans-serif',
+            }}>
+              <span style={{ color: '#ccc', flexShrink: 0 }}>—</span>
+              <span>{line.slice(1).trim()}</span>
+            </div>
+          )
+        }
+
+        return (
+          <p key={i} style={{
+            fontSize: 13,
+            color: '#555',
+            lineHeight: 1.8,
+            fontFamily: '"DM Sans", sans-serif',
+            marginBottom: 4,
+          }}>
+            {line}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function AgentStream({ events, loading }) {
+  const doneEvent = events.find(e => e.type === 'done')
+  const traceEvents = events.filter(e => e.type !== 'done')
+
+  return (
+    <div>
+      {doneEvent && <FinalReport result={doneEvent.result} />}
+
+      {doneEvent && (
+        <div style={{ borderTop: '1.5px solid #e0dbd2', marginBottom: 28, paddingTop: 28 }}>
+          <div style={{
+            fontSize: 10,
+            letterSpacing: '2.5px',
+            textTransform: 'uppercase',
+            color: '#bbb',
+            fontFamily: '"DM Sans", sans-serif',
+            marginBottom: 16,
+          }}>
+            Agent Trace
+          </div>
+        </div>
+      )}
+
+      {!doneEvent && (
+        <div style={{
+          fontSize: 10,
+          letterSpacing: '2.5px',
+          textTransform: 'uppercase',
+          color: '#999',
+          marginBottom: 16,
+          fontFamily: '"DM Sans", sans-serif',
+        }}>
+          {loading ? 'Analyzing…' : 'Agent Trace'}
+        </div>
+      )}
+
+      {traceEvents.map((event, i) => <TraceRow key={i} event={event} />)}
+
+      {loading && (
+        <div style={{ padding: '12px 0', fontSize: 14, color: '#bbb' }}>· · ·</div>
+      )}
     </div>
   )
 }
