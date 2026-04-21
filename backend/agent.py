@@ -13,11 +13,26 @@ from tools.file import write_file
 
 MAX_ITERATIONS = 20
 
-SYSTEM_PROMPT = """You are a codebase analysis agent. The user will give you a GitHub repository URL and a request.
-Use the available tools to explore the repository and fulfill the request.
-Always start by getting basic repo info and the file tree to understand the structure.
-Be thorough but focused — only call tools you need to answer the request.
-The GitHub repository to analyze is: {github_url}"""
+SYSTEM_PROMPT = """你是一个代码仓库分析 Agent。用户会给你一个 GitHub 仓库 URL 和一个请求。
+使用可用工具探索仓库并完成请求。
+始终先获取仓库基本信息和文件树以了解结构。
+只调用完成请求所需的工具，不要过度调用。
+待分析的 GitHub 仓库是：{github_url}
+
+完成工具调用后，用中文输出一份结构清晰的分析报告，格式如下：
+
+## [报告标题]
+
+### 项目概览
+（基本信息：语言、star 数、描述等）
+
+### [针对用户请求的核心分析章节]
+（根据用户的具体问题展开，可以有多个章节）
+
+### 总结
+（关键结论和建议）
+
+输出必须是中文，使用 Markdown 格式，结构清晰，内容具体，不要泛泛而谈。"""
 
 
 def dispatch_tool(name: str, args: dict) -> dict:
@@ -136,17 +151,10 @@ async def run_agent_demo(github_url: str, user_request: str) -> AsyncGenerator[s
     yield await _sse({"type": "done", "result": final})
 
 
-async def run_agent(github_url: str, user_request: str) -> AsyncGenerator[str, None]:
-    if os.getenv("DEMO_MODE", "").lower() == "true":
-        async for chunk in run_agent_demo(github_url, user_request):
-            yield chunk
-        return
-
-    client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    messages = [{"role": "user", "content": user_request}]
-    system = SYSTEM_PROMPT.format(github_url=github_url)
-
-    for _ in range(MAX_ITERATIONS):
+async def _react_loop(
+    client, system: str, messages: list, max_iter: int = MAX_ITERATIONS
+) -> AsyncGenerator[str, None]:
+    for _ in range(max_iter):
         response = await client.messages.create(
             model="claude-opus-4-7",
             max_tokens=4096,
@@ -164,6 +172,7 @@ async def run_agent(github_url: str, user_request: str) -> AsyncGenerator[str, N
 
         if response.stop_reason == "end_turn":
             yield f"data: {json.dumps({'type': 'done', 'result': think_text})}\n\n"
+            messages.append({"role": "assistant", "content": response.content})
             return
 
         if response.stop_reason == "tool_use":
@@ -192,3 +201,43 @@ async def run_agent(github_url: str, user_request: str) -> AsyncGenerator[str, N
             messages.append({"role": "user", "content": tool_results})
 
     yield f"data: {json.dumps({'type': 'error', 'message': 'Max iterations reached'})}\n\n"
+
+
+async def run_agent(
+    github_url: str, user_request: str, session_id: str = None, sessions: dict = None
+) -> AsyncGenerator[str, None]:
+    if os.getenv("DEMO_MODE", "").lower() == "true":
+        async for chunk in run_agent_demo(github_url, user_request):
+            yield chunk
+        return
+
+    client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    messages = [{"role": "user", "content": user_request}]
+    system = SYSTEM_PROMPT.format(github_url=github_url)
+
+    # Emit session_id so frontend can use it for follow-ups
+    if session_id:
+        yield f"data: {json.dumps({'type': 'session', 'session_id': session_id})}\n\n"
+
+    async for chunk in _react_loop(client, system, messages):
+        yield chunk
+
+    # Persist conversation history in session store
+    if session_id and sessions is not None:
+        sessions[session_id]["messages"] = messages
+
+
+async def run_followup(question: str, session: dict) -> AsyncGenerator[str, None]:
+    client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    messages = session["messages"]
+    github_url = session["github_url"]
+    system = SYSTEM_PROMPT.format(github_url=github_url)
+
+    # Append the follow-up question to existing conversation
+    messages.append({"role": "user", "content": question})
+
+    async for chunk in _react_loop(client, system, messages):
+        yield chunk
+
+    # Update persisted messages
+    session["messages"] = messages

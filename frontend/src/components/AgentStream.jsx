@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown'
+
 const TAG_STYLES = {
   think:   { bg: '#e8f0ff', color: '#2563eb', label: 'Think' },
   act:     { bg: '#fff3e0', color: '#d97706', label: 'Act' },
@@ -49,8 +51,40 @@ function TraceRow({ event }) {
   )
 }
 
+const mdComponents = {
+  h1: ({ children }) => (
+    <h1 style={{ fontFamily: '"Playfair Display", serif', fontSize: 26, fontWeight: 700, color: '#1a1a1a', marginBottom: 12, marginTop: 0, letterSpacing: '-0.3px' }}>{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 style={{ fontFamily: '"Playfair Display", serif', fontSize: 20, fontWeight: 700, color: '#1a1a1a', marginBottom: 10, marginTop: 28, letterSpacing: '-0.2px' }}>{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 13, fontWeight: 600, color: '#333', marginBottom: 8, marginTop: 20, letterSpacing: '0.3px', textTransform: 'uppercase' }}>{children}</h3>
+  ),
+  p: ({ children }) => (
+    <p style={{ fontSize: 13, color: '#555', lineHeight: 1.8, fontFamily: '"DM Sans", sans-serif', marginBottom: 10, marginTop: 0 }}>{children}</p>
+  ),
+  li: ({ children }) => (
+    <li style={{ fontSize: 13, color: '#444', lineHeight: 1.8, fontFamily: '"DM Sans", sans-serif', marginBottom: 4 }}>{children}</li>
+  ),
+  ul: ({ children }) => (
+    <ul style={{ paddingLeft: 20, marginBottom: 12, marginTop: 4 }}>{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol style={{ paddingLeft: 20, marginBottom: 12, marginTop: 4 }}>{children}</ol>
+  ),
+  strong: ({ children }) => (
+    <strong style={{ fontWeight: 600, color: '#1a1a1a' }}>{children}</strong>
+  ),
+  code: ({ children }) => (
+    <code style={{ background: '#f0ede8', padding: '1px 5px', borderRadius: 3, fontSize: 12, fontFamily: 'monospace', color: '#444' }}>{children}</code>
+  ),
+  hr: () => (
+    <hr style={{ border: 'none', borderTop: '1px solid #e0dbd2', margin: '20px 0' }} />
+  ),
+}
+
 function FinalReport({ result }) {
-  const lines = result.split('\n')
   return (
     <div style={{ marginBottom: 48 }}>
       <div style={{
@@ -61,62 +95,41 @@ function FinalReport({ result }) {
         marginBottom: 20,
         fontFamily: '"DM Sans", sans-serif',
       }}>
-        Repository Report
+        分析报告
       </div>
+      <ReactMarkdown components={mdComponents}>{result}</ReactMarkdown>
+    </div>
+  )
+}
 
-      {lines.map((line, i) => {
-        if (!line.trim()) return <div key={i} style={{ height: 8 }} />
-
-        if (line.startsWith('**') && line.endsWith('**')) {
-          return (
-            <h2 key={i} style={{
-              fontFamily: '"Playfair Display", serif',
-              fontSize: 24,
-              fontWeight: 700,
-              color: '#1a1a1a',
-              marginBottom: 16,
-              letterSpacing: '-0.3px',
-            }}>
-              {line.slice(2, -2)}
-            </h2>
-          )
-        }
-
-        if (line.startsWith('•')) {
-          return (
-            <div key={i} style={{
-              display: 'flex',
-              gap: 10,
-              fontSize: 13,
-              color: '#444',
-              lineHeight: 1.8,
-              marginBottom: 4,
-              fontFamily: '"DM Sans", sans-serif',
-            }}>
-              <span style={{ color: '#ccc', flexShrink: 0 }}>—</span>
-              <span>{line.slice(1).trim()}</span>
-            </div>
-          )
-        }
-
-        return (
-          <p key={i} style={{
-            fontSize: 13,
-            color: '#555',
-            lineHeight: 1.8,
-            fontFamily: '"DM Sans", sans-serif',
-            marginBottom: 4,
-          }}>
-            {line}
-          </p>
-        )
-      })}
+function FollowupDivider({ round }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '16px 0 8px',
+    }}>
+      <div style={{ flex: 1, height: '1px', background: '#e0dbd2' }} />
+      <span style={{
+        fontSize: 9,
+        letterSpacing: '2px',
+        textTransform: 'uppercase',
+        color: '#bbb',
+        fontFamily: '"DM Sans", sans-serif',
+        whiteSpace: 'nowrap',
+      }}>
+        Follow-up {round}
+      </span>
+      <div style={{ flex: 1, height: '1px', background: '#e0dbd2' }} />
     </div>
   )
 }
 
 export default function AgentStream({ events, loading }) {
-  const doneEvent = events.find(e => e.type === 'done')
+  // Show the last done event as the report (updated by follow-ups)
+  const doneEvents = events.filter(e => e.type === 'done')
+  const doneEvent = doneEvents[doneEvents.length - 1] || null
   const traceEvents = events.filter(e => e.type !== 'done')
 
   return (
@@ -151,7 +164,11 @@ export default function AgentStream({ events, loading }) {
         </div>
       )}
 
-      {traceEvents.map((event, i) => <TraceRow key={i} event={event} />)}
+      {traceEvents.map((event, i) =>
+        event.type === 'followup_divider'
+          ? <FollowupDivider key={i} round={event.round} />
+          : <TraceRow key={i} event={event} />
+      )}
 
       {loading && (
         <div style={{ padding: '12px 0', fontSize: 14, color: '#bbb' }}>· · ·</div>
