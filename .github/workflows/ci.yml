@@ -27,7 +27,7 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 backend --max-line-length=100 --exclude=backend/tests
+          flake8 backend --config=backend/.flake8
 
       - name: Run tests
         env:

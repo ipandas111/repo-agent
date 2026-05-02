@@ -69,7 +69,7 @@ async def run_agent_demo(github_url: str, user_request: str) -> AsyncGenerator[s
         yield await _sse(event)
 
     # Step 1: Think
-    async for chunk in emit({"type": "think", "content": f'I need to analyze "{owner}/{repo}". Let me start by fetching basic repo info and the file tree to understand what we\'re working with.'}, 0.5):
+    async for chunk in emit({"type": "think", "content": f'I need to analyze "{owner}/{repo}". Let me start by fetching basic repo info and the file tree to understand what we\'re working with.'}, 0.5):  # noqa: E501
         yield chunk
 
     # Step 2: Act — get repo
@@ -84,7 +84,7 @@ async def run_agent_demo(github_url: str, user_request: str) -> AsyncGenerator[s
     lang = repo_info.get("language", "unknown")
     stars = repo_info.get("stars", 0)
     desc = repo_info.get("description") or "no description"
-    async for chunk in emit({"type": "think", "content": f'This is a {lang} project with {stars:,} stars. Description: "{desc}". Now let me get the file tree to understand the structure.'}, 0.7):
+    async for chunk in emit({"type": "think", "content": f'This is a {lang} project with {stars:,} stars. Description: "{desc}". Now let me get the file tree to understand the structure.'}, 0.7):  # noqa: E501
         yield chunk
 
     # Step 4: Act — list tree
@@ -93,11 +93,11 @@ async def run_agent_demo(github_url: str, user_request: str) -> AsyncGenerator[s
 
     tree_info = dispatch_tool("github_list_tree", {"owner": owner, "repo": repo})
     files = tree_info.get("files", [])
-    async for chunk in emit({"type": "observe", "content": f'{{"file_count": {tree_info.get("file_count", 0)}, "sample_files": {json.dumps(files[:20])}}}'}, 0.4):
+    async for chunk in emit({"type": "observe", "content": f'{{"file_count": {tree_info.get("file_count", 0)}, "sample_files": {json.dumps(files[:20])}}}'}, 0.4):  # noqa: E501
         yield chunk
 
     # Step 5: Think
-    async for chunk in emit({"type": "think", "content": f'I can see {tree_info.get("file_count", 0)} files. Let me check the language breakdown and recent commits to understand how active this project is.'}, 0.7):
+    async for chunk in emit({"type": "think", "content": f'I can see {tree_info.get("file_count", 0)} files. Let me check the language breakdown and recent commits to understand how active this project is.'}, 0.7):  # noqa: E501
         yield chunk
 
     # Step 6: Act — get languages

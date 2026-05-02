@@ -1,14 +1,15 @@
-import os
 import uuid
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from tools.github import parse_github_url
-from agent import run_agent, run_followup
+from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import StreamingResponse  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+from tools.github import parse_github_url  # noqa: E402
+from agent import run_agent, run_followup  # noqa: E402
 
 app = FastAPI()
 
@@ -19,18 +20,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory session store: session_id -> {messages, github_url, follow_up_count}
 sessions: dict = {}
 
 MAX_FOLLOWUPS = 3
+
 
 class AnalyzeRequest(BaseModel):
     github_url: str
     user_request: str
 
+
 class FollowupRequest(BaseModel):
     session_id: str
     question: str
+
 
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
@@ -47,6 +50,7 @@ async def analyze(req: AnalyzeRequest):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
 
 @app.post("/followup")
 async def followup(req: FollowupRequest):
