@@ -2,7 +2,7 @@
 
 A web-based AI Agent that analyzes any public GitHub repository using a hand-written **ReAct loop** — no LangChain, no abstractions. Just Claude's native `tool_use` API with real-time streaming.
 
-![Demo](https://img.shields.io/badge/status-active-brightgreen) ![Python](https://img.shields.io/badge/python-3.11+-blue) ![React](https://img.shields.io/badge/react-18-61dafb)
+[![CI](https://github.com/ipandas111/repo-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ipandas111/repo-agent/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.11+-blue) ![React](https://img.shields.io/badge/react-18-61dafb)
 
 ## What It Does
 
